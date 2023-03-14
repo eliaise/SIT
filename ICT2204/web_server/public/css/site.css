@@ -1,0 +1,222 @@
+
+main {
+	padding-top: 2rem;
+}
+
+body {
+    font-family : Arial;
+	font-size : 14px;
+	background:#f8f9fa;
+	height: 100vh;
+}
+
+.page-title {
+    font-size:24px; 
+	font-weight:bold;
+	color: #154D86;
+	margin-bottom: 2rem;
+}
+
+.cart-header {
+	/*background-color: #0040FF;*/
+	background-color: #017CA7;
+	color: white;
+}
+
+.btn-primary {
+	background-color: #154D86;
+	border: 0;
+}
+
+.main-banner {
+	height: 50vh;
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.main-banner h1, .main-banner h6{
+	font-family: "Times New Roman", Times, serif;
+	color: white;
+}
+
+.main-banner h1 {
+	font-size: 5rem;
+	color: #FFFFFF;
+}
+
+.navbar-expand-md .navbar-nav .nav-link {
+	padding-left: .5rem;
+	padding-right: 0;
+}
+
+@media screen and (max-width: 575px){
+    .main-banner{
+    	background-image: linear-gradient(rgba(0, 0, 0, 0.17), rgba(0, 0, 0, 0.17)), url('/Images/main-banner-small.jpg');
+    }
+    .main-banner .shop-name{
+        font-size: 2.3rem;
+    }
+    .main-banner h6{
+	font-size: 0.9rem;
+	font-weight: 100;
+	font-style: italic;
+    }
+    .prod-desc{
+    	display:none;
+    }
+    .prod-title{
+    	text-align: center;
+    }
+    iframe{
+    	display:none;
+    }
+    .my-about{
+    	display:block !important;
+    }
+}
+
+@media screen and (max-width: 805px) and (min-width: 576px){
+    .main-banner{
+    	background-image: linear-gradient(rgba(0, 0, 0, 0.17), rgba(0, 0, 0, 0.17)), url('/Images/main-banner-small.jpg');
+    }
+    .main-banner .shop-name{
+	font-size: 5rem;
+    }
+    .main-banner h6{
+	font-size: 1.5rem;
+	font-weight: 100;
+	font-style: italic;
+    }
+    iframe{
+    	display:none;
+    }
+    .my-about{
+    	display:block !important;
+    }
+}
+
+@media screen and (min-width: 806px){
+    .main-banner{
+    	background-image: linear-gradient(rgba(0, 0, 0, 0.17), rgba(0, 0, 0, 0.17)),  url('/Images/main-banner.jpg');
+    }
+    .main-banner .shop-name {
+	font-size: 7rem;
+    }
+    .main-banner h6 {
+	font-size: 2rem;
+	font-weight: 100;
+	font-style: italic;
+    }
+}
+
+
+.second-nav {
+	box-shadow: 0 5px 5px -5px rgba(0,0,0,.2);
+}
+
+
+/* Login Page */
+
+.login-form, .register-form, .profile-form, .credential-form, .forgot-form, .feedback-form {
+	width: 100%;
+	max-width: 500px;
+	margin: 0 auto;
+}
+
+.profile-form textarea.form-control {
+	height: 90px;
+}
+
+.login-form button {
+	width: 100px;
+}
+.charges p{
+	margin-bottom:0px;
+}
+.offer-price, .current-price {
+	margin-bottom:0px;
+}
+
+/* Feedback section */
+.rating-block{
+	background-color:#FFFFFF;
+	border:1px solid #EFEFEF;
+	padding:15px 15px 20px 15px;
+	border-radius:3px;
+}
+
+.review-block{
+	background-color:#FFFFFF;
+	border:1px solid #EFEFEF;
+	padding:15px;
+	border-radius:3px;
+	margin-bottom:15px;
+}
+.review-block-name{
+	font-size:12px;
+	margin:10px 0;
+}
+.review-block-date{
+	font-size:12px;
+}
+.review-block-rate{
+	font-size:13px;
+	margin-bottom:15px;
+}
+.review-block-title{
+	font-size:15px;
+	font-weight:700;
+	margin-bottom:10px;
+}
+.review-block-description{
+	font-size:13px;
+}
+
+.slidecontainer {
+  width: 100%; /* Width of the outside container */
+}
+
+/* The slider itself */
+.slider {
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 25px; /* Specified height */
+  background: #d3d3d3; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+  transition: opacity .2s;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 1px;
+  border-radius: 5px;  
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%; 
+  background: #4CAF50;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #154D86;
+  cursor: pointer;
+}
+

@@ -1,0 +1,8 @@
+sudo a2dismod --force autoindex
+sudo nano /etc/apache2/conf-enabled/security.conf # set ServerSignature to Off; set ServerTokens to Prod
+
+sudo apt install libapache2-mod-security2 -y
+sudo a2enmod security2
+sudo systemctl restart apache2
+sudo cp /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
+sudo nano /etc/modsecurity/modsecurity.conf # set SecRuleEngine to On
