@@ -1,0 +1,47 @@
+#!/usr/local/sbin/tac_plus
+id = spawnd {
+    listen = { port = 49 }
+}
+
+id = tac_plus {
+	authentication log = /var/log/tac_plus/authentication/%Y/%m/%d.log
+	authentication log = 192.168.99.101:504
+	
+	authorization log = /var/log/tac_plus/authorization/%Y/%m/%d.log
+	authorization log = 192.168.99.101:504
+	
+    accounting log = /var/log/tac_plus/accounting/%Y/%m/%d.log
+	accounting log = 192.168.99.101:504
+	
+	host = devices {
+		welcome banner = "Unauthorized access is unauthorized."
+		key = "M@RV3LP@$$w0rd"
+		address = 192.168.99.0/24
+	}
+	
+	group = admins {
+		default service = permit
+		service = shell {
+			default command = permit
+			set priv-lvl = 15
+		}
+	}
+	
+	group = managers {
+		default service = permit
+		service = shell {
+			default command = deny
+			set priv-lvl = 5
+			
+			cmd = show { permit interface .*}
+			cmd = show { privilege }
+		}
+	}
+	
+	user = bob {
+		login = clear P@ssw0rd
+		member = managers@192.168.99.250
+		member = admins
+		enable 5 = P@$$w0rd
+	}
+}
