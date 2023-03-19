@@ -1,0 +1,268 @@
+##### D2 config
+hostname D2
+
+##### define vlans
+vlan 10
+name PUBLIC
+
+vlan 20
+name LIBRARIANS
+
+vlan 30
+name SENIOR_LIBRARIANS
+
+vlan 40
+name SYSADMINS
+
+vlan 98
+name NATIVE
+
+vlan 99
+name MANAGEMENT
+
+
+##### define vlan interfaces
+int vlan10
+ip addr 192.168.10.2 255.255.255.0
+no shut
+
+int vlan20
+ip addr 192.168.20.2 255.255.255.0
+no shut
+
+int vlan30
+ip addr 192.168.30.2 255.255.255.0
+no shut
+
+int vlan40
+ip addr 192.168.40.2 255.255.255.0
+no shut
+
+
+##### define trunk ports to access switches
+int range g1/0/1-2
+switchport trunk allowed vlan 10, 20, 30, 40, 98
+switchport trunk native vlan 98
+
+
+##### define backup routing ports to distribution switch
+int range g1/0/3-4
+no switchport
+channel-group 1 mode on
+
+int port-channel 1
+no switchport
+ip addr 10.0.0.18 255.255.255.252
+
+
+##### define trunk port to D1
+int range g1/0/5-6
+switchport mode trunk
+switchport trunk allowed vlan 10, 20, 30, 40, 98
+switchport trunk native vlan 98
+channel-group 2 mode on
+
+int port-channel 2
+switchport mode trunk
+switchport trunk allowed vlan 10, 20, 30, 40, 98
+switchport trunk native vlan 98
+
+
+##### define routing ports to router
+int g1/0/24
+no switchport
+ip addr 10.0.0.14 255.255.255.252
+
+
+##### implement hsrp and load balancing
+int vlan10
+standby version 2
+standby 10 ip 192.168.10.254
+
+int vlan20
+standby version 2
+standby 20 ip 192.168.20.254
+standby 20 priority 255
+standby 20 preempt
+
+int vlan30
+standby version 2
+standby 30 ip 192.168.30.254
+
+
+int vlan40
+standby version 2
+standby 40 ip 192.168.40.254
+standby 40 priority 255
+standby 40 preempt
+
+
+##### enable routing
+ip routing
+
+ip route 0.0.0.0 0.0.0.0 10.20.0.254
+ip route 0.0.0.0 0.0.0.0 10.30.0.1 5
+
+
+##### dhcp 
+ip dhcp pool PUBLIC
+network 192.168.10.0 255.255.255.0
+default-router 192.168.10.254
+dns server 192.168.50.131
+
+ip dhcp pool LIBRARIANS
+network 192.168.20.0 255.255.255.0
+default-router 192.168.20.254
+dns server 192.168.50.131
+
+ip dhcp pool SENIOR_LIBRARIANS
+network 192.168.30.0 255.255.255.0
+default-router 192.168.30.254
+dns server 192.168.50.131
+
+ip dhcp pool SYSADMINS
+network 192.168.40.0 255.255.255.0
+default-router 192.168.40.254
+dns server 192.168.50.131
+
+ip dhcp excluded-address 192.168.10.1 192.168.10.99
+ip dhcp excluded-address 192.168.10.254
+ip dhcp excluded-address 192.168.20.1 192.168.10.99
+ip dhcp excluded-address 192.168.20.254
+ip dhcp excluded-address 192.168.30.1 192.168.10.99
+ip dhcp excluded-address 192.168.30.254
+ip dhcp excluded-address 192.168.40.1 192.168.10.99
+ip dhcp excluded-address 192.168.40.254
+
+
+##### management port
+int g0/0
+ip address 192.168.99.251 255.255.255.0
+no shut
+
+
+##### ssh
+ip domain-name pinkdolphin.sitict.net
+crypto key generate rsa mod 4096
+ip ssh version 2
+
+line vty 0 4
+transport input ssh
+
+
+##### local login
+username netman-bob privilege 5 algo sha256 secret P@ssw0rd
+username netadm-john privilege 15 algo sha256 secret P@ssw0rd
+
+
+##### define enable password
+enable password level 5 letmein
+enable password P@$$w0rd
+
+
+##### aaa
+aaa new-model
+aaa group server tacacs+ TACACSVR
+server-private 192.168.99.100 key M@RV3LP@$$w0rd
+ip vrf forwarding Mgmt-vrf
+ip tacacs source-interface g0/0
+
+aaa authenitcation login default group tacacs+ local
+aaa authentication enable default group tacacs+ enable
+
+aaa authorization exec default group TACACSVR local
+aaa authorization commands 1 default group TACACSVR local
+aaa authorization commands 5 default group TACACSVR local
+aaa authorization commands 15 default group TACACSVR local
+aaa authorization config-commands
+
+aaa accounting exec default start-stop group TACACSVR
+aaa accounting commands 1 default group TACACSVR
+aaa accounting commands 5 default group TACACSVR
+aaa accounting commands 15 default group TACACSVR
+
+
+##### local privilege
+privilege interface level 5 shutdown
+privilege interface level 5 no shutdown
+privilege interface level 5 no
+privilege configure level 5 interface
+privilege exec level 5 traceroute
+privilege exec level 5 ping
+privilege exec level 5 configure terminal
+privilege exec level 5 configure
+privilege exec level 5 show vlan
+privilege exec level 5 show ip interface
+privilege exec level 5 show ip
+privilege exec level 5 show interfaces trunk
+privilege exec level 5 show interfaces vlan
+privilege exec level 5 show interfaces
+privilege exec level 5 show
+
+
+##### implement security #####
+
+##### disable cdp
+no cdp run
+
+
+##### shut down unused ports
+int range g1/0/7-23
+switchport mode access
+shut
+
+
+##### all ports should not negotiate DTP
+int range g1/0/1-24
+switchport nonegotiate
+
+
+##### disable line vty 5 15
+ip access-list standard DENY_ALL
+deny any log
+
+line vty 5 15
+transport input none
+exec-timeout 0 1
+no exec
+access-class DENY_ALL in
+
+
+##### disable http management
+no ip http server
+no ip http secure-server
+
+
+##### disable DTP negotiation
+int range g1/0/1-24
+switchport nonegotiate
+
+
+##### md5 authentication on HSRP
+key chain HSRP_AUTH
+key 1
+key-string XCH.6x&}A~upU=4h
+send-lifetime 00:00:00 Jul 1 2022 23:59:59 Sep 30 2022
+accept-lifetime 00:00:00 Jul 1 2022 01:05:00 Oct 1 2022
+key 2
+key-string yRaS3nw8P2h:%Q'Z
+send-lifetime 00:00:00 Oct 1 2022 23:59:59 Dec 31 2022
+accept-lifetime 00:00:00 Oct 1 2022 01:05:00 Jan 1 2023
+
+int vlan10
+standby 10 auth md5 key-chain HSRP_AUTH
+
+int vlan20
+standby 20 auth md5 key-chain HSRP_AUTH
+
+int vlan30
+standby 30 auth md5 key-chain HSRP_AUTH
+
+int vlan40
+standby 40 auth md5 key-chain HSRP_AUTH
+
+
+##### block brute force login attempts
+login delay 1
+login block-for 120 attempts 3 within 30
+

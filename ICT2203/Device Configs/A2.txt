@@ -1,0 +1,185 @@
+##### A2 config
+hostname A2
+
+##### define vlans
+vlan 10
+name PUBLIC
+
+vlan 20
+name LIBRARIANS
+
+vlan 30
+name SENIOR_LIBRARIANS
+
+vlan 40
+name SYSADMINS
+
+vlan 98
+name NATIVE
+
+vlan 99
+name MANAGEMENT
+
+
+##### define trunk ports
+int range g1/0/1-2
+switchport mode trunk
+switchport trunk allowed vlan 10,20,30,40,98
+switchport trunk native vlan 98
+
+
+##### define access ports
+int range g1/0/3-22
+switchport mode access
+switchport access vlan 20
+spanning-tree portfast
+
+int range g1/0/23-24
+switchport mode access
+switchport access vlan 40
+spanning-tree portfast
+
+
+##### not used but somehow registered, apply defenses to them too
+int range g1/0/25-28
+switchport mode access
+switchport access vlan 1
+spanning-tree portfast
+shutdown
+
+
+##### management port
+int f0
+ip addr 192.168.99.253 255.255.255.0
+no shut
+
+
+##### ssh
+ip domain-name pinkdolphin.sitict.net
+crypto key generate rsa mod 4096
+ip ssh version 2
+
+line vty 0 4
+transport input ssh
+
+
+##### local login
+username netman-bob privilege 5 algo sha256 secret P@ssw0rd
+username netadm-john privilege 15 algo sha256 secret P@ssw0rd
+
+
+##### enable password
+enable secret level 5 letmein
+enable algo sha256 secret P@$$w0rd
+
+
+##### aaa
+aaa new-model
+tacacs server TACACSVR
+address ipv4 192.168.99.100
+key M@RV3LP@$$w0rd
+
+aaa authenitcation login default group tacacs+ local
+aaa authentication enable default group tacacs+ enable
+
+aaa authorization exec default group tacacs+ local
+aaa authorization commands 1 default group tacacs+ local
+aaa authorization commands 5 default group tacacs+ local
+aaa authorization commands 15 default group tacacs+ local
+aaa authorization config-commands
+
+aaa accounting exec default start-stop group tacacs+
+aaa accounting commands 1 default group tacacs+
+aaa accounting commands 5 default group tacacs+
+aaa accounting commands 15 default group tacacs+
+
+
+##### local privilege
+privilege interface level 5 shutdown
+privilege interface level 5 no shutdown
+privilege interface level 5 no
+privilege configure level 5 interface
+privilege exec level 5 traceroute
+privilege exec level 5 ping
+privilege exec level 5 configure terminal
+privilege exec level 5 configure
+privilege exec level 5 show vlan
+privilege exec level 5 show ip interface
+privilege exec level 5 show ip
+privilege exec level 5 show interfaces trunk
+privilege exec level 5 show interfaces vlan
+privilege exec level 5 show interfaces
+privilege exec level 5 show
+
+
+##### implement security #####
+
+##### disable cdp
+no cdp run
+
+
+##### sticky mac address
+int range g1/0/3-28
+switchport port-security
+switchport port-security mac-address sticky
+switchport port-security violation restrict
+
+
+##### bpdu guard
+spanning-tree portfast bpduguard default
+
+
+##### block brute force login attempts
+login delay 1
+login block-for 120 attempts 3 within 30
+
+
+##### disable http management
+no ip http server
+no ip http secure-server
+
+
+##### disable DTP negotiation
+int range g1/0/1-28
+switchport nonegotiate
+
+
+##### disable line vty 5 15
+ip access-list standard DENY_ALL
+deny any log
+
+line vty 5 15
+transport input none
+exec-timeout 0 1
+no exec
+access-class DENY_ALL in
+
+
+
+##### dhcp snooping
+ip dhcp snooping
+ip dhcp snooping vlan 20,40
+ip dhcp snooping verify mac
+int range g1/0/3-28
+ip dhcp snooping limit rate 10
+int g1/0/1-2
+ip dhcp snooping trust
+
+
+##### arp poison defense
+ip arp inspection vlan 20,40
+int range g1/0/1-2
+ip arp inspection trust
+int range g1/0/3-28
+ip arp inspection limit rate 10
+
+ip arp inspection validate src-mac dst-mac ip
+
+
+##### ipsg
+int range g1/0/3-28
+ip verify source port-security
+
+
+##### disable option 82
+no ip dhcp snooping information option

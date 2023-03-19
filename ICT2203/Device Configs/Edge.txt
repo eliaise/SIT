@@ -1,0 +1,238 @@
+##### Edge config
+hostname Edge
+
+##### define interfaces
+int g0/0/0
+description - outside
+ip address 172.27.47.130 255.255.255.248
+ip nat outside
+no shut
+
+int g0/1/0
+description - inside
+ip address 10.0.0.2 255.255.255.252
+ip nat inside
+no shut
+
+
+##### local login
+username netman-bob privilege 5 algo sha256 secret P@ssw0rd
+username netadm-john privilege 15 algo sha256 secret P@ssw0rd
+
+
+##### define enable password
+enable password level 5 letmein
+enable password P@$$w0rd
+
+
+##### aaa
+aaa new-model
+aaa group server tacacs+ TACACSVR
+server-private 192.168.99.100 key M@RV3LP@$$w0rd
+ip vrf forwarding Mgmt-vrf
+ip tacacs source-interface g0/0
+
+aaa authenitcation login default group tacacs+ local
+aaa authentication enable default group tacacs+ enable
+
+aaa authorization exec default group TACACSVR local
+aaa authorization commands 1 default group TACACSVR local
+aaa authorization commands 5 default group TACACSVR local
+aaa authorization commands 15 default group TACACSVR local
+aaa authorization config-commands
+
+aaa accounting exec default start-stop group TACACSVR
+aaa accounting commands 1 default group TACACSVR
+aaa accounting commands 5 default group TACACSVR
+aaa accounting commands 15 default group TACACSVR
+
+
+##### local privilege
+privilege interface level 5 shutdown
+privilege interface level 5 no shutdown
+privilege interface level 5 no
+privilege configure level 5 interface
+privilege exec level 5 traceroute
+privilege exec level 5 ping
+privilege exec level 5 configure terminal
+privilege exec level 5 configure
+privilege exec level 5 show vlan
+privilege exec level 5 show ip interface
+privilege exec level 5 show ip
+privilege exec level 5 show interfaces trunk
+privilege exec level 5 show interfaces vlan
+privilege exec level 5 show interfaces
+privilege exec level 5 show
+
+
+##### ssh
+ip domain-name pinkdolphin.sitict.net
+crypto key generate rsa mod 4096
+ip ssh version 2
+
+line vty 0 4
+transport input ssh
+
+
+##### define static nat
+ip nat inside source static 10.0.0.131 129.126.164.131
+ip nat inside source static 10.0.0.132 129.126.164.132
+ip nat inside source static 10.0.0.133 129.126.164.133
+ip nat inside source static 10.0.0.134 129.126.164.134
+
+
+##### define static routes
+ip route 0.0.0.0 0.0.0.0 g0/0/0
+
+ip route 192.168.10.0 255.255.255.0 10.0.0.254
+ip route 192.168.20.0 255.255.255.0 10.0.0.254
+ip route 192.168.30.0 255.255.255.0 10.0.0.254
+ip route 192.168.40.0 255.255.255.0 10.0.0.254
+ip route 192.168.50.0 255.255.255.0 10.0.0.254
+ip route 192.168.60.0 255.255.255.0 10.0.0.254
+ip route 192.168.97.0 255.255.255.0 10.0.0.254
+
+
+##### define NAT for user network
+ip access-list standard INET_ALLOWED
+permit 192.168.20.0 0.0.0.255
+permit 192.168.30.0 0.0.0.255
+permit 192.168.40.0 0.0.0.255
+
+access-list INET_ALLOWED remark - list of networks permitted to have Internet access
+
+ip nat inside source list INET_ALLOWED int g0/0 overload
+
+
+##### define dhcp pools
+ip dhcp pool PUBLIC
+network 192.168.10.0 255.255.255.0
+default-router 192.168.10.254
+name-server 192.168.10.254
+
+ip dhcp pool LIBRARIANS
+network 192.168.20.0 255.255.255.0
+default-router 192.168.20.254
+name-server 192.168.20.254
+
+ip dhcp pool SENIOR_LIBRARIANS
+network 192.168.30.0 255.255.255.0
+default-router 192.168.30.254
+name-server 192.168.30.254
+
+ip dhcp pool SYSADMINS
+network 192.168.40.0 255.255.255.0
+default-router 192.168.40.254
+name-server 192.168.40.254
+
+
+##### excluded IP address ranges
+ip dhcp excluded-address 192.168.10.1 192.168.10.127
+ip dhcp excluded-address 192.168.10.254
+
+ip dhcp excluded-address 192.168.20.1 192.168.20.127
+ip dhcp excluded-address 192.168.20.254
+
+ip dhcp excluded-address 192.168.20.1 192.168.20.127
+ip dhcp excluded-address 192.168.20.254
+
+ip dhcp excluded-address 192.168.20.1 192.168.20.127
+ip dhcp excluded-address 192.168.20.254
+
+
+##### implement security #####
+
+##### disable cdp
+no cdp run
+
+
+##### block brute force login attempts
+login delay 1
+login block-for 120 attempts 3 within 30
+
+
+##### disable line vty 5 15
+ip access-list standard DENY_ALL
+deny any log
+
+line vty 5 15
+transport input none
+exec-timeout 0 1
+no exec
+access-class DENY_ALL in
+
+
+##### disable http management
+no ip http server
+no ip http secure-server
+no ip http authentication local
+
+
+##### disable sending of unreachables
+int g0/0/0
+no ip unreachables
+
+
+##### ACLs
+
+##### external filter
+ip access-list extended OUTSIDE_FILTER
+remark - Deny RFC 3330 special-use addresses
+deny ip host 0.0.0.0 any log
+deny ip 127.0.0.0 0.255.255.255 any log
+deny ip 192.0.2.0 0.0.0.255 any log
+deny ip 224.0.0.0 31.255.255.255 any log
+remark - Permit return ICMP traffic
+permit icmp any any echo-reply log
+permit icmp any any unreachable log
+permit icmp any any ttl-exceeded log
+remark - Deny RFC 1918 space
+deny ip 10.0.0.0 0.255.255.255 any log
+remark ===== Removed 172.16.0.0/12 space =====
+deny ip 192.168.0.0 0.0.255.255 any log
+remark - Deny allocated public IP block
+deny ip 129.126.164.128 0.0.0.15 any log
+remark - Permit outside to DMZ
+permit udp any host 129.126.164.131 eq 53 log
+permit tcp any host 129.126.164.132 eq 80 log
+remark - Permit DMZ DNS recursive lookup
+permit udp host 8.8.8.8 eq 53 host 129.126.164.131 log
+permit udp host 1.1.1.1 eq 53 host 129.126.164.131 log
+remark - Permit outside to JUMP
+permit tcp any host 129.126.164.133 eq 42069 log
+remark - Permit return traffic for USERNET
+permit tcp any any established log
+permit udp any any log
+remark - Permit HONEYPOT traffic
+permit ip any host 129.126.164.134 log
+remark - Implicit DENY
+deny ip any any log
+
+##### internal filter
+ip access-list INSIDE_FILTER
+remark - Permit return traffic from DNS
+permit udp host 192.168.50.131 eq 53 any log
+remark - Permit return traffic from WEB and ASA
+permit tcp any eq 80 any established log
+remark - Permit return traffic from JUMP
+permit tcp host 192.168.60.133 eq 42069 any established log
+remark - Permit recursive DNS traffic from DNS
+permit udp host 192.168.50.131 gt 1023 host 1.1.1.1 eq 53 log
+permit udp host 192.168.50.131 gt 1023 host 8.8.8.8 eq 53 log
+remark - Permit only ADMINS to ping
+permit icmp 192.168.40.0 0.0.0.255 echo log
+deny icmp any any log
+remark - Permit traffic from INET_ALLOWED
+permit tcp 192.168.20.0 0.0.0.255 gt 1023 any lt 1024 log
+permit udp 192.168.20.0 0.0.0.255 gt 1023 any lt 1024 log
+permit tcp 192.168.30.0 0.0.0.255 gt 1023 any lt 1024 log
+permit udp 192.168.30.0 0.0.0.255 gt 1023 any lt 1024 log
+permit tcp 192.168.40.0 0.0.0.255 gt 1023 any lt 1024 log
+permit udp 192.168.40.0 0.0.0.255 gt 1023 any lt 1024 log
+remark - Permit HONEYPOT traffic
+permit ip 192.168.97.0 0.0.0.255 any log
+remark - Implicit DENY
+deny ip any any log
+
+##### drop unreachable packets
+no ip unreachables

@@ -1,0 +1,102 @@
+##### Mgmt_SW
+hostname Mgmt_SW
+
+##### define ports
+int range f0/1-24
+switchport port-security
+switchport port-security maximum 5
+switchport port-security violation restrict
+switchport nonegotiate
+
+int range g0/1-2
+switchport port-security
+switchport port-security maximum 5
+switchport port-security violation restrict
+switchport nonegotiate
+
+
+##### shut down unused ports
+int range f0/3-18
+shut
+
+
+##### ssh
+ip domain-name pinkdolphin.sitict.net
+crypto key generate rsa mod 4096
+ip ssh version 2
+
+line vty 0 4
+transport input ssh
+
+
+# define management interface
+vlan 99
+int vlan99
+ip addr 192.168.99.254 255.255.255.0
+no shut
+
+
+##### aaa
+aaa new-model
+tacacs server TACACSVR
+address ipv4 192.168.99.100
+key M@RV3LP@$$w0rd
+
+aaa authenitcation login default group tacacs+ local
+aaa authentication enable default group tacacs+ enable
+
+aaa authorization exec default group tacacs+ local
+aaa authorization commands 1 default group tacacs+ local
+aaa authorization commands 5 default group tacacs+ local
+aaa authorization commands 15 default group tacacs+ local
+aaa authorization config-commands
+
+aaa accounting exec default start-stop group tacacs+
+aaa accounting commands 1 default group tacacs+
+aaa accounting commands 5 default group tacacs+
+aaa accounting commands 15 default group tacacs+
+
+
+##### local privilege
+privilege interface level 5 shutdown
+privilege interface level 5 no shutdown
+privilege interface level 5 no
+privilege configure level 5 interface
+privilege exec level 5 traceroute
+privilege exec level 5 ping
+privilege exec level 5 configure terminal
+privilege exec level 5 configure
+privilege exec level 5 show vlan
+privilege exec level 5 show ip interface
+privilege exec level 5 show ip
+privilege exec level 5 show interfaces trunk
+privilege exec level 5 show interfaces vlan
+privilege exec level 5 show interfaces
+privilege exec level 5 show
+
+
+##### implement security #####
+
+##### disable cdp
+no cdp run
+
+
+##### block brute force login attempts
+login delay 1
+login block-for 120 attempts 3 within 30
+
+
+##### disable line vty 5 15
+ip access-list standard DENY_ALL
+deny any log
+
+line vty 5 15
+transport input none
+exec-timeout 0 1
+no exec
+access-class DENY_ALL in
+
+
+##### disable http management
+no ip http server
+no ip http secure-server

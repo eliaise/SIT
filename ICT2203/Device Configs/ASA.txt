@@ -1,0 +1,150 @@
+##### ASA config
+hostname ASA
+
+##### define interfaces
+int g0/0
+nameif outside
+security-level 0
+ip address 10.0.0.1 255.255.255.252
+no shut
+
+int g0/1
+nameif jump
+security-level 50
+ip address 10.0.0.5 255.255.255.252
+no shut
+
+int g0/2
+nameif dmz
+security-level 50
+ip address 192.168.50.254 255.255.255.0
+no shut
+
+int g0/3
+nameif inside1
+security-level 100
+ip address 10.0.0.9 255.255.255.252
+no shut
+
+int g0/4
+nameif inside2
+security-level 100
+ip address 10.0.0.13 255.255.255.252
+no shut
+
+int g0/5
+nameif dhcpserver
+security-level 100
+ip address 10.0.0.21 255.255.255.252
+no shut
+
+int m0/0
+nameif management
+security-level 100
+ip address 192.168.99.254 255.255.255.0
+no shut
+
+
+##### static routes
+route outside 0.0.0.0 0.0.0.0 10.0.0.2
+route inside1 192.168.10.0 255.255.255.0 10.0.0.10
+route inside1 192.168.30.0 255.255.255.0 10.0.0.10
+route inside1 192.168.20.0 255.255.255.0 10.0.0.10 5
+route inside1 192.168.40.0 255.255.255.0 10.0.0.10 5
+
+route inside2 192.168.20.0 255.255.255.0 10.0.0.14
+route inside2 192.168.40.0 255.255.255.0 10.0.0.14
+route inside2 192.168.10.0 255.255.255.0 10.0.0.14 5
+route inside2 192.168.30.0 255.255.255.0 10.0.0.14 5
+
+
+##### define static nat
+object network WEB_SERVER
+host 192.168.50.130
+nat (dmz, outside) static 129.126.164.130
+
+object network DNS_SERVER
+host 192.168.50.131
+nat (dmz, outside) static 129.126.164.131
+
+object network JUMP_HOST
+host 192.168.99.132
+nat (management, outside) static 129.126.164.132
+
+
+##### ssh
+ip domain-name pinkdolphin.sitict.net
+crypto key generate rsa mod 4096
+ssh version 2
+ssh 192.168.99.0 255.255.255.0 management
+ssh key-exchange group dh-group14-sha1
+ssh timeout 5
+ssh stricthostkeycheck
+
+
+##### local login
+username netman-bob privilege 5 algo sha256 secret P@ssw0rd
+username netadm-john privilege 15 algo sha256 secret P@ssw0rd
+
+
+##### define enable password
+enable password level 5 letmein
+enable password P@$$w0rd
+
+
+##### define aaa
+aaa-server TACACSVR protocol tacacs+
+
+aaa-server TACACSVR (management) host 192.168.99.100
+key M@RV3LP@$$w0rd
+
+aaa-server TACACSVR protocol tacacs+
+aaa-server TACACSVR (management) host 192.168.99.100
+aaa authentication enable console TACACSVR LOCAL
+aaa authentication ssh console TACACSVR LOCAL
+aaa authorization command TACACSVR LOCAL
+aaa authorization exec authentication-server auto-enable
+aaa accounting command TACACSVR
+aaa accounting enable console TACACSVR
+aaa accounting serial console TACACSVR
+aaa accounting ssh console TACACSVR
+
+aaa authentication login-history
+
+
+##### local privilege
+privilege interface level 5 shutdown
+privilege interface level 5 no shutdown
+privilege interface level 5 no
+privilege configure level 5 interface
+privilege exec level 5 traceroute
+privilege exec level 5 ping
+privilege exec level 5 configure terminal
+privilege exec level 5 configure
+privilege exec level 5 show vlan
+privilege exec level 5 show ip interface
+privilege exec level 5 show ip
+privilege exec level 5 show interfaces trunk
+privilege exec level 5 show interfaces vlan
+privilege exec level 5 show interfaces
+privilege exec level 5 show
+
+
+##### allow traffic from outside to inside
+access-list OUT_TO_IN permit tcp any host 192.168.50.131 eq http
+access-list OUT_TO_IN permit udp any host 192.168.50.132 eq domain
+
+access-list OUT_TO_IN = permit tcp any host 192.168.99.133 eq 42069
+
+access-group OUT_TO_IN in interface outside
+
+
+##### implement security #####
+
+##### disable cdp
+no cdp run
+
+
+##### block brute force login attempts
+login delay 1
+login block-for 120 attempts 3 within 30
