@@ -1,0 +1,29 @@
+[install couchdb 3.2.1]
+wget https://downloads.apache.org/couchdb/source/3.2.1/apache-couchdb-3.2.1.tar.gz
+tar xvzf apache-couchdb-3.2.1.tar.gz
+cd apache-couchdb-3.2.1
+
+[enable package repo]
+sudo apt update && sudo apt install -y curl apt-transport-https gnupg
+curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1
+source /etc/os-release
+echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main"     | sudo tee /etc/apt/sources.list.d/couchdb.list >/dev/null
+sudo apt update
+
+[install dependencies]
+sudo apt-get --no-install-recommends -y install build-essential pkg-config erlang libicu-dev libcurl4-openssl-dev
+
+curl -LO http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+sudo dpkg -i libffi6_3.2.1-8_amd64.deb
+
+sudo apt-get install -y libnspr4-dev libffi-dev
+
+wget http://launchpadlibrarian.net/309343863/libmozjs185-1.0_1.8.5-1.0.0+dfsg-7_amd64.deb
+wget http://launchpadlibrarian.net/309343864/libmozjs185-dev_1.8.5-1.0.0+dfsg-7_amd64.deb
+sudo dpkg --force-depends -i libmozjs185-1.0_1.8.5-1.0.0+dfsg-7_amd64.deb
+sudo dpkg --force-depends -i libmozjs185-dev_1.8.5-1.0.0+dfsg-7_amd64.deb
+
+sudo apt --fix-broken install
+
+./configure
+make release

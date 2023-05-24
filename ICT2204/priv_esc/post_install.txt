@@ -1,0 +1,12 @@
+cp -R /rel/couchdb /home
+sed -i 's/;admin = mysecretpassword/admin = $C0MPL3X_P@$$W0RD/g' /home/couchdb/etc/local.ini
+sed -i 's/;port = 5984/port = 5984/g' /home/couchdb/etc/local.ini
+sed -i 's/;bind_address = 127.0.0.1/bind_address = 127.0.0.1/g' /home/couchdb/etc/local.ini
+sed -i 's/-setcookie monster/-setcookie $C0MPL3X_P@$$W0RD/g' /home/couchdb/etc/vm.args
+echo "-kernel inet_dist_use_interface {127,0,0,1}" >> /home/couchdb/etc/vm.args
+
+// Changing default shell
+sudo mv /bin/sh /bin/sh.orig
+sudo ln -s /bin/bash /bin/sh
+
+export ERL_EPMD_ADDRESS=127.0.0.1 && /home/couchdb/bin/couchdb
