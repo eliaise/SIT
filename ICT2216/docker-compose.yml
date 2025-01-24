@@ -1,0 +1,48 @@
+services:
+  git-server:
+    build: ./gitserver/
+    container_name: git-server
+    restart: unless-stopped
+    volumes:
+      - ./gitserver/repos:/git
+    ports:
+      - 3000:3000
+    networks:
+      jenkins_network:
+
+  jenkins:
+    build: ./jenkins/
+    privileged: true
+    container_name: jenkins
+    restart: unless-stopped
+    networks:
+      jenkins_network:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins/jenkins-data:/var/jenkins_home
+    ports:
+      - 8080:8080
+
+  sonarqube:
+    image: sonarqube:community
+    hostname: sonarqube
+    container_name: sonarqube
+    restart: unless-stopped
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - ./sonarqube/data:/opt/sonarqube/data
+      - ./sonarqube/extensions:/opt/sonarqube/extensions
+      - ./sonarqube/logs:/opt/sonarqube/logs
+    ports:
+      - 19000:9000
+    networks:
+      jenkins_network:
+
+networks:
+  jenkins_network:
+    name: jenkins_network
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.69.0/24

@@ -1,0 +1,107 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'http://git-server:3000/redacted.git' // TODO: change this to point to your repository
+        SONARQUBE_PROJECT_NAME = 'redacted' // TODO: change this to the name of the SonarQube project name that you created
+        COMPOSE_FILE = 'docker-compose.yml'
+        NVD_API_KEY = credentials('nvd_api_key') // API key to access NVD for OWASP Dependency Check
+        WEB_SERVER_IP = credentials('http_server')
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                deleteDir() // Clears the workspace directory
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                script {
+                    sh 'git clone ${REPO_URL} .'
+                }
+            }
+        }
+
+        stage('Code Quality Check via SonarQube') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarQube';
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''/var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarQube/bin/sonar-scanner \
+                          -Dsonar.projectKey=${SONARQUBE_PROJECT_NAME} \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=./src/test/**/* \
+                          -Dsonar.tests=./src \
+                          -Dsonar.test.inclusions=./src/test/**/*'''
+                    }
+                }
+            }
+        }
+
+        stage('OWASP Dependency-Check Vulnerabilities') {
+            steps {
+                dependencyCheck additionalArguments: ''' 
+                            --enableExperimental
+                            -o './'
+                            -s './'
+                            -f 'ALL' 
+                            --prettyPrint
+                            --nvdApiKey $NVD_API_KEY''', odcInstallation: 'odc v11.1.0'
+                
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+            }
+        }
+
+        stage('Build and Deploy') {
+            steps {
+                script {
+                    // Set the environment variables and run the docker-compose command
+                    sh 'docker compose down'
+                    sh 'docker compose up --build -d'
+                    sh 'docker cp src/. php-server:/var/www/html'
+                }
+            }
+        }
+        
+        stage('Tests') {
+            agent {
+                docker {
+                    image 'maven:3-alpine'
+                    args '-v /root/.m2:/root/.m2 -e MY_APP_URL=${WEB_SERVER_IP}'
+                    reuseNode true
+                }
+            }
+			      steps {
+                sh 'mvn -B -DskipTests clean package'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+		    }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'dependency-check-report.*', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/surefire-reports/*.xml', allowEmptyArchive: true
+            recordIssues(
+                enabledForFailure: true, aggregatingResults: true, 
+                tools: [owaspDependencyCheck(), checkStyle(pattern: '**/dependency-check-report.json', reportEncoding: 'UTF-8')]
+            )
+            cleanWs()
+        }
+
+        success {
+            echo 'Deployment completed successfully.'
+        }
+
+        failure {
+            echo 'Deployment failed. Check logs for more details.'
+        }
+    }
+}
